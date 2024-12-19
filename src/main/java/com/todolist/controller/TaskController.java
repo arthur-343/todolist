@@ -11,6 +11,7 @@ import com.todolist.service.TaskService;
 
 @RestController
 @RequestMapping("/tasks")
+@CrossOrigin(origins = "http://localhost:3002") 
 public class TaskController {
     
     @Autowired
