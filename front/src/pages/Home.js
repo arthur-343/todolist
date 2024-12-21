@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link, useParams } from 'react-router-dom'; // Adicione esta linha
+import { Link } from 'react-router-dom'; // Remova o useParams
 
 export default function Home() {
   const [tasks, setTasks] = useState([]);
@@ -56,7 +56,8 @@ export default function Home() {
                   <td>{task.title}</td>
                   <td>{task.completed ? 'Yes' : 'No'}</td>
                   <td>
-                    <button className='btn btn-primary mx-2'>View</button>
+                    <Link className='btn btn-primary mx-2' to={`/viewtask/${task.id}`}
+                    >View</Link>
                     <Link className='btn btn-outline-primary mx-2' to={`/edittask/${task.id}`}>
                       Edit
                     </Link>
