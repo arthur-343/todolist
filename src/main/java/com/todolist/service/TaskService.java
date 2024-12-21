@@ -1,11 +1,11 @@
 package com.todolist.service;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.todolist.exception.TaskNotFoundException;
 import com.todolist.model.Task;
 import com.todolist.repositories.TaskRepository;
 
@@ -19,8 +19,9 @@ public class TaskService {
         return taskRepository.findAll();
     }
 
-    public Optional<Task> getTaskById(Long id) {
-        return taskRepository.findById(id);
+    public Task getTaskById(Long id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
     }
 
     public Task saveTask(Task task) {

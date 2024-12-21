@@ -1,9 +1,10 @@
 package com.todolist.controller;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.todolist.model.Task;
@@ -11,34 +12,49 @@ import com.todolist.service.TaskService;
 
 @RestController
 @RequestMapping("/tasks")
-@CrossOrigin(origins = "http://localhost:3002") 
+@CrossOrigin(origins = "http://localhost:3002")
 public class TaskController {
-    
+
     @Autowired
     TaskService taskService;
-    
+
     @GetMapping
-    public List<Task> getTasks() {
-        return taskService.getAllTask();
+    public ResponseEntity<List<Task>> getTasks() {
+        List<Task> tasks = taskService.getAllTask();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .body(tasks);
     }
 
     @GetMapping("/{id}")
-    public Optional<Task> getTaskById(@PathVariable Long id) {
-        return taskService.getTaskById(id);
+    public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
+        Task task = taskService.getTaskById(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .body(task);
     }
 
     @PostMapping
-    public Task saveTask(@RequestBody Task task) {
-        return taskService.saveTask(task);
+    public ResponseEntity<Task> saveTask(@RequestBody Task task) {
+        Task savedTask = taskService.saveTask(task);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .body(savedTask);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteTask(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .build();
     }
 
     @PutMapping("/{id}")
-    public Task updateTask(@PathVariable Long id, @RequestBody Task taskDetails) {
-        return taskService.updateTask(id, taskDetails);
+    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task taskDetails) {
+        Task updatedTask = taskService.updateTask(id, taskDetails);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .body(updatedTask);
     }
 }
