@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom'; // Adicione esta linha
+import { Link, useParams } from 'react-router-dom'; // Adicione esta linha
 
 export default function Home() {
   const [tasks, setTasks] = useState([]);
@@ -23,6 +23,15 @@ export default function Home() {
       setTasks(sortedTasks);
     } catch (error) {
       console.error('Erro ao buscar tarefas:', error);
+    }
+  };
+
+  const deleteTask = async (id) => {
+    try {
+      await axios.delete(`http://localhost:8080/tasks/${id}`);
+      loadTasks(); // Chame loadTasks para atualizar a lista após a exclusão
+    } catch (error) {
+      console.error('Erro ao deletar tarefa:', error);
     }
   };
 
@@ -51,7 +60,9 @@ export default function Home() {
                     <Link className='btn btn-outline-primary mx-2' to={`/edittask/${task.id}`}>
                       Edit
                     </Link>
-                    <button className='btn btn-danger mx-2'>Delete</button>
+                    <button className='btn btn-danger mx-2' onClick={() => deleteTask(task.id)}>
+                      Delete
+                    </button>
                   </td>
                 </tr>
               );
