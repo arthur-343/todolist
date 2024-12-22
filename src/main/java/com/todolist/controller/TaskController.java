@@ -20,7 +20,7 @@ public class TaskController {
 
     @GetMapping
     public ResponseEntity<List<Task>> getTasks() {
-        List<Task> tasks = taskService.getAllTask();
+        List<Task> tasks = taskService.getAllTasks();
         return ResponseEntity.ok()
                 .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
                 .body(tasks);
