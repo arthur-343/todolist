@@ -29,4 +29,24 @@ public class CustomExceptionHandler {
         errorMap.put("errorMessage", exception.getMessage());
         return errorMap;
     }
+
+    // Adicionando o ExceptionHandler para JWTCreationException
+    @ResponseBody
+    @ExceptionHandler(JWTCreationException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, String> handleJWTCreationException(JWTCreationException exception) {
+        Map<String, String> errorMap = new HashMap<>();
+        errorMap.put("errorMessage", exception.getMessage());
+        return errorMap;
+    }
+
+    // Adicionando o ExceptionHandler para JWTVerificationException
+    @ResponseBody
+    @ExceptionHandler(JWTVerificationException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Map<String, String> handleJWTVerificationException(JWTVerificationException exception) {
+        Map<String, String> errorMap = new HashMap<>();
+        errorMap.put("errorMessage", exception.getMessage());
+        return errorMap;
+    }
 }

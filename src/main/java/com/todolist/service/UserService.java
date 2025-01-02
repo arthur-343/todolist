@@ -32,6 +32,10 @@ public class UserService {
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }
+    
+    public User findByUsername(String username) { return userRepository.findByUsername(username);
+    }
+
 
     public User updateUser(Long id, User userDetails) {
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
