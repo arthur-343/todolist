@@ -28,6 +28,8 @@ public class Task {
     @JoinColumn(name = "user_id", nullable = false)
     @JsonBackReference
     private User user;
+    
+    private Long userTaskId;
 
     @Override
     public String toString() {

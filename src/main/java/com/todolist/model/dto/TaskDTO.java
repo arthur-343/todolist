@@ -8,8 +8,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TaskDTO {
-
-    private Long id;
+    private Long userId;
+    private Long taskId;
+    private Long userTaskId;
     private String title;
     private String description;
     private Boolean completed;

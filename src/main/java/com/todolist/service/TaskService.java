@@ -21,7 +21,7 @@ public class TaskService {
     public List<TaskDTO> getTasksByUser(Long userId) {
         List<Task> tasks = taskRepository.findByUserId(userId);
         return tasks.stream()
-                .map(task -> new TaskDTO(task.getId(), task.getTitle(), task.getDescription(), task.getCompleted()))
+                .map(task -> new TaskDTO(task.getUser().getId(), task.getId(), task.getUserTaskId(), task.getTitle(), task.getDescription(), task.getCompleted()))
                 .collect(Collectors.toList());
     }
     
@@ -29,25 +29,26 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new TaskNotFoundException(id));
 
-        // Garante que a tarefa pertence ao usuário atual
         if (!task.getUser().getId().equals(userId)) {
             throw new RuntimeException("Access Denied");
         }
         
-        return new TaskDTO(task.getId(), task.getTitle(), task.getDescription(), task.getCompleted());
+        return new TaskDTO(task.getUser().getId(), task.getId(), task.getUserTaskId(), task.getTitle(), task.getDescription(), task.getCompleted());
     }
 
     public TaskDTO saveTask(Task task, Long userId) {
-        task.setUser(new User(userId)); // Define o usuário da tarefa
+        task.setUser(new User(userId));
+        Long nextUserTaskId = taskRepository.countByUserId(userId) + 1;
+        task.setUserTaskId(nextUserTaskId);
         Task savedTask = taskRepository.save(task);
-        return new TaskDTO(savedTask.getId(), savedTask.getTitle(), savedTask.getDescription(), savedTask.getCompleted());
+
+        return new TaskDTO(savedTask.getUser().getId(), savedTask.getId(), savedTask.getUserTaskId(), savedTask.getTitle(), savedTask.getDescription(), savedTask.getCompleted());
     }
 
     public TaskDTO updateTask(Long id, Task taskDetails, Long userId) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new TaskNotFoundException(id));
-        
-        // Garante que a tarefa pertence ao usuário atual
+
         if (!task.getUser().getId().equals(userId)) {
             throw new RuntimeException("Access Denied");
         }
@@ -62,16 +63,12 @@ public class TaskService {
             task.setDescription(taskDetails.getDescription());
         }
         Task updatedTask = taskRepository.save(task);
-        return new TaskDTO(updatedTask.getId(), updatedTask.getTitle(), updatedTask.getDescription(), updatedTask.getCompleted());
+        return new TaskDTO(updatedTask.getUser().getId(), updatedTask.getId(), updatedTask.getUserTaskId(), updatedTask.getTitle(), updatedTask.getDescription(), updatedTask.getCompleted());
     }
 
-    public void deleteTask(Long id, Long userId) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
-        
-        if (!task.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Access Denied");
-        }
+    public void deleteTask(Long userTaskId, Long userId) {
+        Task task = taskRepository.findByUserTaskIdAndUserId(userTaskId, userId)
+                .orElseThrow(() -> new TaskNotFoundException(userTaskId));
 
         taskRepository.delete(task);
     }
