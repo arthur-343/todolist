@@ -1,3 +1,9 @@
 package com.todolist.model.dto;
 
-public record LoginRequestDTO(String email, String password) {}
+import lombok.Data;
+
+@Data
+public class LoginRequestDTO {
+    private String email;
+    private String password;
+}

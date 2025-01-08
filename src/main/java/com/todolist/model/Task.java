@@ -25,7 +25,12 @@ public class Task {
     private String description;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
-    @JsonBackReference  
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonBackReference
     private User user;
+
+    @Override
+    public String toString() {
+        return "Task{id=" + id + ", title='" + title + "', description='" + description + "', completed=" + completed + "}";
+    }
 }

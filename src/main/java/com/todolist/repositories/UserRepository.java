@@ -1,14 +1,13 @@
 package com.todolist.repositories;
 
-import com.todolist.model.User;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import com.todolist.model.User;
 
-@Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    User findByUsername(String username);
-    
-    Optional<User> findByEmail(String email);
+
+    @EntityGraph(attributePaths = "tasks")  // Indica que as tasks devem ser carregadas junto com o usuário
+    User findByEmail(String email);
 }
+

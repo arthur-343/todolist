@@ -1,3 +1,10 @@
 package com.todolist.model.dto;
 
-public record RegisterRequestDTO(String email, String password, String username) {}
+import lombok.Data;
+
+@Data
+public class RegisterRequestDTO {
+    private String email;
+    private String password;
+    private String username;
+}

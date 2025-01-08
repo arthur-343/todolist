@@ -1,9 +1,6 @@
 package com.todolist.controller;
 
-
-
 import java.util.Optional;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,30 +21,32 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
+
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
 
     @PostMapping("/login")
-    public ResponseEntity login(@RequestBody LoginRequestDTO body){
-        User user = this.repository.findByEmail(body.email()).orElseThrow(() -> new RuntimeException("User not found"));
-        if(passwordEncoder.matches(body.password(), user.getPassword())) {
+    public ResponseEntity<ResponseDTO> login(@RequestBody LoginRequestDTO body) {
+        Optional<User> userOpt = Optional.ofNullable(this.repository.findByEmail(body.getEmail()));
+        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (passwordEncoder.matches(body.getPassword(), user.getPassword())) {
             String token = this.tokenService.generateToken(user);
             return ResponseEntity.ok(new ResponseDTO(user.getUsername(), token));
         }
         return ResponseEntity.badRequest().build();
     }
 
-
     @PostMapping("/register")
-    public ResponseEntity register(@RequestBody RegisterRequestDTO body){
-        Optional<User> user = this.repository.findByEmail(body.email());
+    public ResponseEntity<ResponseDTO> register(@RequestBody RegisterRequestDTO body) {
+        Optional<User> userOpt = Optional.ofNullable(this.repository.findByEmail(body.getEmail()));
 
-        if(user.isEmpty()) {
+        if (userOpt.isEmpty()) {
             User newUser = new User();
-            newUser.setPassword(passwordEncoder.encode(body.password()));
-            newUser.setEmail(body.email());
-            newUser.setUsername(body.username());
+            newUser.setPassword(passwordEncoder.encode(body.getPassword()));
+            newUser.setEmail(body.getEmail());
+            newUser.setUsername(body.getUsername());
             this.repository.save(newUser);
 
             String token = this.tokenService.generateToken(newUser);
