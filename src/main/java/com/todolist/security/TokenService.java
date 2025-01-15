@@ -3,6 +3,7 @@ package com.todolist.security;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -48,5 +49,19 @@ public class TokenService {
 
     private Instant generateExpirationDate(){
         return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"));
+    }
+
+    public boolean isTokenExpired(String token) {
+        try {
+            Algorithm algorithm = Algorithm.HMAC256(secret);
+            Date expirationDate = JWT.require(algorithm)
+                                      .withIssuer("login-auth-api")
+                                      .build()
+                                      .verify(token)
+                                      .getExpiresAt(); // Obtém a data de expiração do token
+            return expirationDate.before(new Date()); // Verifica se o token está expirado
+        } catch (JWTVerificationException exception) {
+            return true; // Se houver exceção na verificação, consideramos o token como expirado
+        }
     }
 }

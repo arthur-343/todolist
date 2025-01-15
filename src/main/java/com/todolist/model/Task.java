@@ -1,14 +1,7 @@
 package com.todolist.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
@@ -28,6 +21,9 @@ public class Task {
     @JoinColumn(name = "user_id", nullable = false)
     @JsonBackReference
     private User user;
+
+    @Column(name = "user_task_id")
+    private Long userTaskId;
 
     @Override
     public String toString() {
