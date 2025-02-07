@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.todolist.exception.AccessDeniedException;
 import com.todolist.exception.TaskNotFoundException;
 import com.todolist.model.Task;
 import com.todolist.model.User;
@@ -31,9 +32,8 @@ public class TaskService {
 
         // Garante que a tarefa pertence ao usuário atual
         if (!task.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Access Denied");
-        }
-        
+            throw new AccessDeniedException("Access Denied: You do not have permission to access this task.");     
+            }        
         return new TaskDTO(task.getId(), task.getUser().getId(), task.getUserTaskId(), task.getTitle(), task.getDescription(), task.getCompleted());
     }
 
@@ -56,9 +56,8 @@ public class TaskService {
         
         // Garante que a tarefa pertence ao usuário atual
         if (!task.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Access Denied");
+        	throw new AccessDeniedException("Access Denied: You do not have permission to access this task.");
         }
-
         if (taskDetails.getTitle() != null) {
             task.setTitle(taskDetails.getTitle());
         }
@@ -77,7 +76,7 @@ public class TaskService {
                 .orElseThrow(() -> new TaskNotFoundException(id));
         
         if (!task.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Access Denied");
+            throw new AccessDeniedException("Access Denied: You do not have permission to access this task.");        
         }
 
         taskRepository.delete(task);

@@ -49,4 +49,14 @@ public class CustomExceptionHandler {
         errorMap.put("errorMessage", exception.getMessage());
         return errorMap;
     }
+
+    // Adicionando o ExceptionHandler para AccessDeniedException
+    @ResponseBody
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Map<String, String> handleAccessDeniedException(AccessDeniedException exception) {
+        Map<String, String> errorMap = new HashMap<>();
+        errorMap.put("errorMessage", exception.getMessage());
+        return errorMap;
+    }
 }

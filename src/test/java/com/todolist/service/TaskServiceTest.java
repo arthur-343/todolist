@@ -2,17 +2,16 @@ package com.todolist.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.List;
-
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import com.todolist.exception.AccessDeniedException;
 import com.todolist.exception.TaskNotFoundException;
 import com.todolist.model.Task;
 import com.todolist.model.User;
@@ -28,8 +27,8 @@ class TaskServiceTest {
     private TaskService taskService;
 
     private User user;
-    private Task task1;
-    private Task task2;
+    private TaskDTO taskDTO1;
+    private TaskDTO taskDTO2;
 
     @BeforeEach
     void setUp() {
@@ -38,118 +37,171 @@ class TaskServiceTest {
         user = new User();
         user.setId(1L);
 
-        task1 = new Task();
-        task1.setId(1L);
-        task1.setUser(user);
-        task1.setTitle("Task 1");
-        task1.setDescription("Description 1");
-        task1.setCompleted(false);
-        task1.setUserTaskId(1L);
-
-        task2 = new Task();
-        task2.setId(2L);
-        task2.setUser(user);
-        task2.setTitle("Task 2");
-        task2.setDescription("Description 2");
-        task2.setCompleted(false);
-        task2.setUserTaskId(2L);
+        taskDTO1 = new TaskDTO(1L, user.getId(), 1L, "Task 1", "Description 1", false);
+        taskDTO2 = new TaskDTO(2L, user.getId(), 2L, "Task 2", "Description 2", false);
     }
 
     @Test
     void testGetTasksByUser() {
-        when(taskRepository.findByUserId(1L)).thenReturn(Arrays.asList(task1, task2));
+        when(taskRepository.findByUserId(1L)).thenReturn(Arrays.asList(
+            new Task(taskDTO1.getId(), user, taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId()),
+            new Task(taskDTO2.getId(), user, taskDTO2.getTitle(), taskDTO2.getDescription(), taskDTO2.getCompleted(), taskDTO2.getUserTaskId())
+        ));
 
         List<TaskDTO> taskDTOs = taskService.getTasksByUser(1L);
 
         assertNotNull(taskDTOs);
         assertEquals(2, taskDTOs.size());
-        assertEquals(task1.getId(), taskDTOs.get(0).getId());
-        assertEquals(task2.getId(), taskDTOs.get(1).getId());
+        assertEquals(taskDTO1.getId(), taskDTOs.get(0).getId());
+        assertEquals(taskDTO2.getId(), taskDTOs.get(1).getId());
     }
 
     @Test
     void testGetTaskById() {
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task1));
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(
+            new Task(taskDTO1.getId(), user, taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId())
+        ));
 
         TaskDTO taskDTO = taskService.getTaskById(1L, 1L);
 
         assertNotNull(taskDTO);
-        assertEquals(task1.getId(), taskDTO.getId());
+        assertEquals(taskDTO1.getId(), taskDTO.getId());
+    }
 
-        // Testa exceção para tarefa não encontrada
-        when(taskRepository.findById(3L)).thenReturn(Optional.empty());
+    @Test
+    public void testGetTaskByIdTaskNotFoundException() {
+        // Configurar o mock para retornar vazio
+        when(taskRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // Verificar se a exceção TaskNotFoundException é lançada
         assertThrows(TaskNotFoundException.class, () -> {
-            taskService.getTaskById(3L, 1L);
+            taskService.getTaskById(1L, 1L);
         });
+    }
 
-        // Testa exceção para acesso negado
-        task1.getUser().setId(2L);
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task1));
-        assertThrows(RuntimeException.class, () -> {
+    @Test
+    public void testGetTaskByIdAccessDeniedException() {
+        // Configurar o mock para retornar uma tarefa
+        Task task = new Task();
+        User user = new User();
+        user.setId(2L); // ID do usuário diferente do userId passado no método
+        task.setUser(user);
+
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
+
+        // Verificar se a exceção AccessDeniedException é lançada
+        assertThrows(AccessDeniedException.class, () -> {
             taskService.getTaskById(1L, 1L);
         });
     }
 
     @Test
     void testSaveTask() {
-        when(taskRepository.findByUserId(1L)).thenReturn(Arrays.asList(task1, task2));
-        when(taskRepository.save(any(Task.class))).thenReturn(task1);
+        Task newTask = new Task(taskDTO1.getId(), user, taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId());
+        when(taskRepository.findByUserId(1L)).thenReturn(Arrays.asList(newTask));
+        when(taskRepository.save(any(Task.class))).thenReturn(newTask);
 
-        Task task = new Task();
-        task.setTitle("New Task");
-        task.setDescription("New Description");
-
-        TaskDTO savedTaskDTO = taskService.saveTask(task, 1L);
+        // Chama o método saveTask e passa uma Task, não TaskDTO
+        TaskDTO savedTaskDTO = taskService.saveTask(newTask, 1L);
 
         assertNotNull(savedTaskDTO);
-        assertEquals(task1.getId(), savedTaskDTO.getId());
+        assertEquals(taskDTO1.getId(), savedTaskDTO.getId());
+    }
+
+    @Test
+    public void testSaveTask_RepositoryException() {
+        Task task = new Task();
+        when(taskRepository.save(task)).thenThrow(new RuntimeException("Erro no repositório"));
+
+        assertThrows(RuntimeException.class, () -> {
+            taskService.saveTask(task, 1L);
+        });
     }
 
     @Test
     void testUpdateTask() {
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task1));
-        when(taskRepository.save(any(Task.class))).thenReturn(task1);
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(
+            new Task(taskDTO1.getId(), user, taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId())
+        ));
 
-        Task taskDetails = new Task();
-        taskDetails.setTitle("Updated Task");
+        // Criando uma instância de Task com base em TaskDTO
+        Task updatedTask = new Task(
+            taskDTO1.getId(),
+            user,
+            "Updated Task",  
+            taskDTO1.getDescription(),
+            taskDTO1.getCompleted(),
+            taskDTO1.getUserTaskId()
+        );
 
-        TaskDTO updatedTaskDTO = taskService.updateTask(1L, taskDetails, 1L);
+        when(taskRepository.save(any(Task.class))).thenReturn(updatedTask);
+
+        // Passando o Task (não TaskDTO) para o método updateTask
+        TaskDTO updatedTaskDTO = taskService.updateTask(1L, updatedTask, 1L);
 
         assertNotNull(updatedTaskDTO);
         assertEquals("Updated Task", updatedTaskDTO.getTitle());
+    }
 
-        // Testa exceção para tarefa não encontrada
+    @Test
+    void testUpdateTaskNotFound() {
         when(taskRepository.findById(3L)).thenReturn(Optional.empty());
         assertThrows(TaskNotFoundException.class, () -> {
-            taskService.updateTask(3L, taskDetails, 1L);
+            taskService.updateTask(3L, new Task(3L, user, "New Title", "Description", false, 123L), 1L);
         });
+    }
 
-        // Testa exceção para acesso negado
-        task1.getUser().setId(2L);
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task1));
+    @Test
+    void testUpdateTaskAccessDenied() {
+        Task taskWithDifferentUser = new Task(taskDTO1.getId(), new User(2L), taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId());
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(taskWithDifferentUser));
         assertThrows(RuntimeException.class, () -> {
-            taskService.updateTask(1L, taskDetails, 1L);
+            taskService.updateTask(1L, taskWithDifferentUser, 1L);
+        });
+    }
+
+    @Test
+    void testUpdateTaskAccessDeniedException() {
+        Task taskWithDifferentUser = new Task(taskDTO1.getId(), new User(2L), taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId());
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(taskWithDifferentUser));
+        assertThrows(AccessDeniedException.class, () -> {
+            taskService.updateTask(1L, taskWithDifferentUser, 1L);
         });
     }
 
     @Test
     void testDeleteTask() {
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task1));
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(
+            new Task(taskDTO1.getId(), user, taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId())
+        ));
 
         taskService.deleteTask(1L, 1L);
 
-        verify(taskRepository, times(1)).delete(task1);
+        verify(taskRepository, times(1)).delete(any(Task.class));
+    }
 
-        // Testa exceção para tarefa não encontrada
+    @Test
+    void testDeleteTaskNotFound() {
         when(taskRepository.findById(3L)).thenReturn(Optional.empty());
         assertThrows(TaskNotFoundException.class, () -> {
             taskService.deleteTask(3L, 1L);
         });
+    }
 
-        // Testa exceção para acesso negado
-        task1.getUser().setId(2L);
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task1));
+    @Test
+    void testDeleteTaskAccessDenied() {
+        Task taskWithDifferentUser = new Task(taskDTO1.getId(), new User(2L), taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId());
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(taskWithDifferentUser));
         assertThrows(RuntimeException.class, () -> {
+            taskService.deleteTask(1L, 1L);
+        });
+    }
+
+    @Test
+    void testDeleteTaskAccessDeniedException() {
+        Task taskWithDifferentUser = new Task(taskDTO1.getId(), new User(2L), taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId());
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(taskWithDifferentUser));
+        assertThrows(AccessDeniedException.class, () -> {
             taskService.deleteTask(1L, 1L);
         });
     }

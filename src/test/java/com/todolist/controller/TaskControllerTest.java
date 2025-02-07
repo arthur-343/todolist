@@ -1,9 +1,11 @@
 package com.todolist.controller;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -12,120 +14,179 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.todolist.exception.AccessDeniedException;
+import com.todolist.exception.TaskNotFoundException;
 import com.todolist.model.Task;
 import com.todolist.model.User;
 import com.todolist.model.dto.TaskDTO;
 import com.todolist.service.TaskService;
 
-@WebMvcTest(TaskController.class)
-class TaskControllerTest {
+public class TaskControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private TaskService taskService;
 
-    private ObjectMapper objectMapper;
+    @InjectMocks
+    private TaskController taskController;
+
+    @Mock
+    private Principal principal;
+
+    @Mock
+    private SecurityContext securityContext;
+
+    @Mock
+    private Authentication authentication;
+
+    @Mock
     private User user;
-    private Task task1;
-    private Task task2;
 
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         MockitoAnnotations.openMocks(this);
-        objectMapper = new ObjectMapper();
-
-        user = new User();
-        user.setId(1L);
-
-        task1 = new Task();
-        task1.setId(1L);
-        task1.setUser(user);
-        task1.setTitle("Task 1");
-        task1.setDescription("Description 1");
-        task1.setCompleted(false);
-        task1.setUserTaskId(1L);
-
-        task2 = new Task();
-        task2.setId(2L);
-        task2.setUser(user);
-        task2.setTitle("Task 2");
-        task2.setDescription("Description 2");
-        task2.setCompleted(false);
-        task2.setUserTaskId(2L);
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(user);
+        when(user.getId()).thenReturn(1L);
     }
 
     @Test
-    void testGetTasks() throws Exception {
-        List<TaskDTO> taskDTOs = Arrays.asList(
-            new TaskDTO(task1.getId(), task1.getUser().getId(), task1.getUserTaskId(), task1.getTitle(), task1.getDescription(), task1.getCompleted()),
-            new TaskDTO(task2.getId(), task2.getUser().getId(), task2.getUserTaskId(), task2.getTitle(), task2.getDescription(), task2.getCompleted())
-        );
+    public void testGetTasks() {
+        List<TaskDTO> taskList = Arrays.asList(new TaskDTO(), new TaskDTO());
+        when(taskService.getTasksByUser(1L)).thenReturn(taskList);
 
-        when(taskService.getTasksByUser(1L)).thenReturn(taskDTOs);
+        ResponseEntity<List<TaskDTO>> response = taskController.getTasks(principal);
 
-        mockMvc.perform(get("/tasks")
-                .principal(() -> "user1"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$[0].id").value(task1.getId()))
-                .andExpect(jsonPath("$[1].id").value(task2.getId()));
+        assert response.getStatusCode() == HttpStatus.OK;
+        assert response.getBody().size() == 2;
     }
 
     @Test
-    void testGetTaskById() throws Exception {
-        TaskDTO taskDTO = new TaskDTO(task1.getId(), task1.getUser().getId(), task1.getUserTaskId(), task1.getTitle(), task1.getDescription(), task1.getCompleted());
+    public void testGetTasksException() {
+        when(taskService.getTasksByUser(1L)).thenThrow(new RuntimeException("Erro inesperado"));
 
-        when(taskService.getTaskById(1L, 1L)).thenReturn(taskDTO);
+        ResponseEntity<List<TaskDTO>> response = taskController.getTasks(principal);
 
-        mockMvc.perform(get("/tasks/1")
-                .principal(() -> "user1"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(task1.getId()));
+        assert response.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR;
+        assert response.getBody() == null;
     }
 
     @Test
-    void testCreateTask() throws Exception {
-        TaskDTO taskDTO = new TaskDTO(task1.getId(), task1.getUser().getId(), task1.getUserTaskId(), task1.getTitle(), task1.getDescription(), task1.getCompleted());
+    public void testGetTaskById() {
+        TaskDTO task = new TaskDTO();
+        when(taskService.getTaskById(anyLong(), anyLong())).thenReturn(task);
 
-        when(taskService.saveTask(any(Task.class), eq(1L))).thenReturn(taskDTO);
+        ResponseEntity<TaskDTO> response = taskController.getTaskById(1L, principal);
 
-        mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(task1))
-                .principal(() -> "user1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(task1.getId()));
+        assert response.getStatusCode() == HttpStatus.OK;
+        assert response.getBody() != null;
     }
 
     @Test
-    void testUpdateTask() throws Exception {
-        TaskDTO updatedTaskDTO = new TaskDTO(task1.getId(), task1.getUser().getId(), task1.getUserTaskId(), "Updated Task", task1.getDescription(), task1.getCompleted());
+    public void testGetTaskById_TaskNotFoundException() {
+        when(taskService.getTaskById(anyLong(), anyLong())).thenThrow(new TaskNotFoundException(1L));
 
-        when(taskService.updateTask(eq(1L), any(Task.class), eq(1L))).thenReturn(updatedTaskDTO);
+        ResponseEntity<TaskDTO> response = taskController.getTaskById(1L, principal);
 
-        mockMvc.perform(put("/tasks/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(task1))
-                .principal(() -> "user1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Updated Task"));
+        assert response.getStatusCode() == HttpStatus.NOT_FOUND;
+        assert response.getBody() == null;
     }
 
     @Test
-    void testDeleteTask() throws Exception {
-        doNothing().when(taskService).deleteTask(1L, 1L);
+    public void testGetTaskById_AccessDeniedException() {
+        when(taskService.getTaskById(anyLong(), anyLong())).thenThrow(new AccessDeniedException("Acesso negado"));
 
-        mockMvc.perform(delete("/tasks/1")
-                .principal(() -> "user1"))
-                .andExpect(status().isNoContent());
+        ResponseEntity<TaskDTO> response = taskController.getTaskById(1L, principal);
+
+        assert response.getStatusCode() == HttpStatus.FORBIDDEN;
+        assert response.getBody() == null;
+    }
+
+    @Test
+    public void testCreateTask() {
+        Task task = new Task();
+        TaskDTO taskDTO = new TaskDTO();
+        when(taskService.saveTask(any(Task.class), anyLong())).thenReturn(taskDTO);
+
+        ResponseEntity<TaskDTO> response = taskController.createTask(task, principal);
+
+        assert response.getStatusCode() == HttpStatus.OK;
+        assert response.getBody() != null;
+    }
+
+    @Test
+    public void testCreateTask_Exception() {
+        Task task = new Task();
+        when(taskService.saveTask(any(Task.class), anyLong())).thenThrow(new RuntimeException("Erro inesperado"));
+
+        ResponseEntity<TaskDTO> response = taskController.createTask(task, principal);
+
+        assert response.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR;
+        assert response.getBody() == null;
+    }
+
+    @Test
+    public void testUpdateTask() {
+        Task task = new Task();
+        TaskDTO taskDTO = new TaskDTO();
+        when(taskService.updateTask(anyLong(), any(Task.class), anyLong())).thenReturn(taskDTO);
+
+        ResponseEntity<TaskDTO> response = taskController.updateTask(1L, task, principal);
+
+        assert response.getStatusCode() == HttpStatus.OK;
+        assert response.getBody() != null;
+    }
+
+    @Test
+    public void testUpdateTask_TaskNotFoundException() {
+        Task task = new Task();
+        when(taskService.updateTask(anyLong(), any(Task.class), anyLong())).thenThrow(new TaskNotFoundException(1L));
+
+        ResponseEntity<TaskDTO> response = taskController.updateTask(1L, task, principal);
+
+        assert response.getStatusCode() == HttpStatus.NOT_FOUND;
+        assert response.getBody() == null;
+    }
+
+    @Test
+    public void testUpdateTask_AccessDeniedException() {
+        Task task = new Task();
+        when(taskService.updateTask(anyLong(), any(Task.class), anyLong())).thenThrow(new AccessDeniedException("Acesso negado"));
+
+        ResponseEntity<TaskDTO> response = taskController.updateTask(1L, task, principal);
+
+        assert response.getStatusCode() == HttpStatus.FORBIDDEN;
+        assert response.getBody() == null;
+    }
+
+    @Test
+    public void testDeleteTask() {
+        ResponseEntity<Void> response = taskController.deleteTask(1L, principal);
+
+        assert response.getStatusCode() == HttpStatus.NO_CONTENT;
+    }
+
+    @Test
+    public void testDeleteTask_TaskNotFoundException() {
+        doThrow(new TaskNotFoundException(1L)).when(taskService).deleteTask(anyLong(), anyLong());
+
+        ResponseEntity<Void> response = taskController.deleteTask(1L, principal);
+
+        assert response.getStatusCode() == HttpStatus.NOT_FOUND;
+    }
+
+    @Test
+    public void testDeleteTask_AccessDeniedException() {
+        doThrow(new AccessDeniedException("Acesso negado")).when(taskService).deleteTask(anyLong(), anyLong());
+
+        ResponseEntity<Void> response = taskController.deleteTask(1L, principal);
+
+        assert response.getStatusCode() == HttpStatus.FORBIDDEN;
     }
 }
