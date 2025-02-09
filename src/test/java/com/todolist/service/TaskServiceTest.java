@@ -153,12 +153,18 @@ class TaskServiceTest {
 
     @Test
     void testUpdateTaskAccessDenied() {
+        // Criar uma tarefa com um usuário diferente
         Task taskWithDifferentUser = new Task(taskDTO1.getId(), new User(2L), taskDTO1.getTitle(), taskDTO1.getDescription(), taskDTO1.getCompleted(), taskDTO1.getUserTaskId());
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(taskWithDifferentUser));
+        
+        // Configurar o mock para retornar a tarefa com um ID diferente (5L)
+        when(taskRepository.findById(5L)).thenReturn(Optional.of(taskWithDifferentUser));
+        
+        // Verificar se a exceção RuntimeException é lançada
         assertThrows(RuntimeException.class, () -> {
-            taskService.updateTask(1L, taskWithDifferentUser, 1L);
+            taskService.updateTask(5L, taskWithDifferentUser, 1L);
         });
     }
+
 
     @Test
     void testUpdateTaskAccessDeniedException() {

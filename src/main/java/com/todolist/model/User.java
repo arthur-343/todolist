@@ -1,7 +1,11 @@
 package com.todolist.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -15,13 +19,11 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@RequiredArgsConstructor 
+@RequiredArgsConstructor
 @Table(name = "userT")
 public class User {
 
@@ -38,9 +40,11 @@ public class User {
     @NonNull
     private String password;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonIgnore
-    private List<Task> tasks;
+    private List<Task> tasks = new ArrayList<>();
+
+
 
     public User(Long id) {
         this.id = id;

@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Task {
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_seq")
     @SequenceGenerator(name = "task_seq", sequenceName = "task_sequence", allocationSize = 1)
@@ -20,7 +21,7 @@ public class Task {
     private Boolean completed;
     private String description;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonBackReference
     private User user;
@@ -28,7 +29,7 @@ public class Task {
     @Column(name = "user_task_id")
     private Long userTaskId;
 
-    // Adicionando um construtor customizado, por que  o Lombok e não permite criar o user(devido ao uso de @ManyToOne com a anotação @JoinColumn) nos testes
+    // Construtor customizado, pois o Lombok não permite criar o user (devido ao uso de @ManyToOne com a anotação @JoinColumn) nos testes
     public Task(Long id, User user, String title, String description, Boolean completed, Long userTaskId) {
         this.id = id;
         this.user = user;
