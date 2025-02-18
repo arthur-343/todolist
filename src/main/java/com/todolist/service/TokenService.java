@@ -1,4 +1,4 @@
-package com.todolist.security;
+package com.todolist.service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -19,6 +19,10 @@ public class TokenService {
     @Value("${jwt.secret}")
     private String secret;
 
+    public void setSecret(String secret) {
+        this.secret = secret;
+    }
+
     public String generateToken(User user){
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
@@ -38,11 +42,12 @@ public class TokenService {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             return JWT.require(algorithm)
-                    .withIssuer("login-auth-api")
-                    .build()
-                    .verify(token)
-                    .getSubject(); // Retorna o e-mail do usuário
+                      .withIssuer("login-auth-api")
+                      .build()
+                      .verify(token)
+                      .getSubject(); // O Subject é o e-mail
         } catch (JWTVerificationException exception) {
+            exception.printStackTrace(); // Log para debugar
             return null;
         }
     }

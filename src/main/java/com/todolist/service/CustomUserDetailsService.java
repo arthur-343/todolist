@@ -1,4 +1,4 @@
-package com.todolist.security;
+package com.todolist.service;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -7,12 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.todolist.model.User;
 import com.todolist.repositories.UserRepository;
 
-@Component
+@Service
 public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired

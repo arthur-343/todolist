@@ -5,19 +5,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Data
@@ -32,19 +21,20 @@ public class User {
     private Long id;
 
     @NonNull
+    @Column(nullable = false)
     private String username;
 
     @NonNull
+    @Column(unique = true, nullable = false)
     private String email;
 
     @NonNull
+    @JsonIgnore  // Evita exposição da senha na serialização
     private String password;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonIgnore
     private List<Task> tasks = new ArrayList<>();
-
-
 
     public User(Long id) {
         this.id = id;
@@ -52,6 +42,6 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{id=" + id + ", username='" + username + "', email='" + email + "', password='" + password + "'}";
+        return "User{id=" + id + ", username='" + username + "', email='" + email + "'}"; // Remove a senha
     }
 }

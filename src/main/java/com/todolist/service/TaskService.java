@@ -22,7 +22,7 @@ public class TaskService {
     public List<TaskDTO> getTasksByUser(Long userId) {
         List<Task> tasks = taskRepository.findByUserId(userId);
         return tasks.stream()
-                .map(task -> new TaskDTO(task.getId(), task.getUser().getId(), task.getUserTaskId(), task.getTitle(), task.getDescription(), task.getCompleted()))
+                .map(task -> new TaskDTO(task.getUserTaskId(), task.getTitle(), task.getDescription(), task.getCompleted()))
                 .collect(Collectors.toList());
     }
     
@@ -33,8 +33,8 @@ public class TaskService {
         // Garante que a tarefa pertence ao usuário atual
         if (!task.getUser().getId().equals(userId)) {
             throw new AccessDeniedException("Access Denied: You do not have permission to access this task.");     
-            }        
-        return new TaskDTO(task.getId(), task.getUser().getId(), task.getUserTaskId(), task.getTitle(), task.getDescription(), task.getCompleted());
+        }        
+        return new TaskDTO(task.getUserTaskId(), task.getTitle(), task.getDescription(), task.getCompleted());
     }
 
     public TaskDTO saveTask(Task task, Long userId) {
@@ -47,7 +47,7 @@ public class TaskService {
         task.setUserTaskId(nextUserTaskId);
 
         Task savedTask = taskRepository.save(task);
-        return new TaskDTO(savedTask.getId(), savedTask.getUser().getId(), savedTask.getUserTaskId(), savedTask.getTitle(), savedTask.getDescription(), savedTask.getCompleted());
+        return new TaskDTO(savedTask.getUserTaskId(), savedTask.getTitle(), savedTask.getDescription(), savedTask.getCompleted());
     }
 
     public TaskDTO updateTask(Long id, Task taskDetails, Long userId) {
@@ -56,7 +56,7 @@ public class TaskService {
         
         // Garante que a tarefa pertence ao usuário atual
         if (!task.getUser().getId().equals(userId)) {
-        	throw new AccessDeniedException("Access Denied: You do not have permission to access this task.");
+            throw new AccessDeniedException("Access Denied: You do not have permission to access this task.");
         }
         if (taskDetails.getTitle() != null) {
             task.setTitle(taskDetails.getTitle());
@@ -68,7 +68,7 @@ public class TaskService {
             task.setDescription(taskDetails.getDescription());
         }
         Task updatedTask = taskRepository.save(task);
-        return new TaskDTO(updatedTask.getId(), updatedTask.getUser().getId(), updatedTask.getUserTaskId(), updatedTask.getTitle(), updatedTask.getDescription(), updatedTask.getCompleted());
+        return new TaskDTO(updatedTask.getUserTaskId(), updatedTask.getTitle(), updatedTask.getDescription(), updatedTask.getCompleted());
     }
 
     public void deleteTask(Long id, Long userId) {

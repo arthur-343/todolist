@@ -15,4 +15,11 @@ public class TaskDTO {
     private String title;
     private String description;
     private Boolean completed;
+    
+    public TaskDTO(Long userTaskId, String title, String description, Boolean completed) {
+        this.userTaskId = userTaskId;
+        this.title = title;
+        this.description = description;
+        this.completed = completed;
+    }
 }

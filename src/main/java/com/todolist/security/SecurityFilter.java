@@ -2,7 +2,6 @@ package com.todolist.security;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,6 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.todolist.model.User;
 import com.todolist.repositories.UserRepository;
+import com.todolist.service.TokenService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,25 +30,40 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        var token = this.recoverToken(request);
-        var login = tokenService.validateToken(token);
+        String token = recoverToken(request);
+        System.out.println("🔍 Token recebido: " + token);
 
-        if (login != null) {
-            // Usando Optional.ofNullable para lidar com possível null
-            Optional<User> userOpt = Optional.ofNullable(userRepository.findByEmail(login));
-            User user = userOpt.orElseThrow(() -> new RuntimeException("User Not Found"));
-            
-            var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
-            var authentication = new UsernamePasswordAuthenticationToken(user, null, authorities);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (token != null && !token.isEmpty()) {
+            String login = tokenService.validateToken(token);
+            System.out.println("🔍 Login associado ao token: " + login);
+
+            if (login != null) {
+                User user = userRepository.findByEmail(login);
+                if (user != null) {
+                    var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+                    SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user, null, authorities));
+                    System.out.println("✅ Autenticação bem-sucedida para: " + login);
+                } else {
+                    System.out.println("❌ Usuário não encontrado para o e-mail: " + login);
+                }
+            } else {
+                System.out.println("❌ Token inválido ou expirado.");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Invalid or expired token");
+                return;
+            }
+        } else {
+            System.out.println("⚠️ Nenhum token encontrado no cabeçalho Authorization.");
         }
 
         filterChain.doFilter(request, response);
     }
 
     private String recoverToken(HttpServletRequest request) {
-        var authHeader = request.getHeader("Authorization");
-        if (authHeader == null) return null;
-        return authHeader.replace("Bearer ", "");
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
     }
 }
